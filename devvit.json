@@ -85,6 +85,45 @@
     "onPostReport": "/internal/triggers/on-post-report",
     "onModAction": "/internal/triggers/on-mod-action"
   },
+  "settings": {
+    "subreddit": {
+      "riskThreshold": {
+        "type": "number",
+        "label": "Risk score threshold (1-10)",
+        "helpText": "Items scoring at or above this value are added to the high-risk queue.",
+        "defaultValue": 7
+      },
+      "autoSnoozeBelow": {
+        "type": "number",
+        "label": "Auto-snooze score below (0 = off)",
+        "helpText": "Items scoring at or below this value are automatically snoozed.",
+        "defaultValue": 0
+      },
+      "claimTtlMinutes": {
+        "type": "number",
+        "label": "Claim expiry in minutes",
+        "helpText": "How long a mod's claim on an item is held before expiring.",
+        "defaultValue": 30
+      },
+      "teamReviewThreshold": {
+        "type": "number",
+        "label": "Team review votes required for auto-action",
+        "helpText": "Set to 0 to disable auto-action on team votes.",
+        "defaultValue": 2
+      },
+      "digestWebhookUrl": {
+        "type": "string",
+        "label": "Discord webhook URL (optional)",
+        "helpText": "If set, the daily digest will be posted to this Discord webhook."
+      },
+      "baselineDays": {
+        "type": "number",
+        "label": "Baseline observation days (0 = off)",
+        "helpText": "Number of days to observe before scoring becomes active.",
+        "defaultValue": 0
+      }
+    }
+  },
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch"
