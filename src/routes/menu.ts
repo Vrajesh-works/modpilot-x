@@ -4,7 +4,7 @@ import type { FormField } from '@devvit/shared-types/shared/form.js';
 import { enrichAndStore } from '../core/enrichment.js';
 import { buildXRayForm } from '../core/xrayDisplay.js';
 import { claimItem, isClaimedByOther } from '../core/claimSystem.js';
-import { getItem } from '../core/redis.js';
+import { clearBaselineActive, getItem, getTeamReviewQueue } from '../core/redis.js';
 import { context } from '@devvit/web/server';
 
 export const menu = new Hono();
@@ -121,4 +121,78 @@ menu.post('/claim-item', async (c) => {
   const mod = context.username ?? 'unknown';
   const result = await claimItem(request.targetId, mod);
   return c.json<UiResponse>({ showToast: result.message }, 200);
+});
+
+// ─── Team Review Queue ────────────────────────────────────────────────────────
+
+menu.post('/team-queue', async (c) => {
+  const queue = await getTeamReviewQueue(5);
+
+  if (queue.length === 0) {
+    return c.json<UiResponse>({ showToast: 'No items in the team review queue.' }, 200);
+  }
+
+  const fields: FormField[] = [
+    {
+      name: 'info',
+      label: 'Team Review Queue',
+      type: 'string',
+      defaultValue: `${queue.length} item(s) awaiting team review`,
+    },
+  ];
+
+  for (const entry of queue) {
+    const item = await getItem(entry.member);
+    const label = item
+      ? `${entry.member} — Score ${item.riskScore.score}/10 — u/${item.authorUsername}`
+      : entry.member;
+    fields.push({
+      name: `vote_${entry.member}`,
+      label,
+      type: 'select',
+      options: [
+        { label: 'No vote', value: 'none' },
+        { label: 'Approve', value: 'approve' },
+        { label: 'Remove', value: 'remove' },
+        { label: 'Discuss', value: 'discuss' },
+      ],
+      defaultValue: ['none'],
+      multiSelect: false,
+    });
+  }
+
+  return c.json<UiResponse>(
+    {
+      showForm: {
+        name: 'teamQueue',
+        form: {
+          fields,
+          title: 'Team Review Queue',
+          acceptLabel: 'Submit Votes',
+          cancelLabel: 'Close',
+        },
+      },
+    },
+    200
+  );
+});
+
+// ─── Digest on-demand ─────────────────────────────────────────────────────────
+
+menu.post('/send-digest', async (c) => {
+  try {
+    const { buildAndStoreDailyDigest } = await import('../core/digestBuilder.js');
+    await buildAndStoreDailyDigest();
+    return c.json<UiResponse>({ showToast: 'Daily digest sent!' }, 200);
+  } catch (err) {
+    console.error('[ModPilot] send-digest failed:', err);
+    return c.json<UiResponse>({ showToast: 'Digest failed. Check server logs.' }, 200);
+  }
+});
+
+// ─── Exit Baseline Mode ───────────────────────────────────────────────────────
+
+menu.post('/exit-baseline', async (c) => {
+  await clearBaselineActive();
+  return c.json<UiResponse>({ showToast: 'Baseline mode ended. Items will now be scored.' }, 200);
 });

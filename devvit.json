@@ -124,6 +124,18 @@
       }
     }
   },
+  "scheduler": {
+    "tasks": {
+      "daily-digest": {
+        "endpoint": "/internal/scheduler/daily-digest",
+        "cron": "0 8 * * *"
+      },
+      "pattern-detector": {
+        "endpoint": "/internal/scheduler/pattern-detector",
+        "cron": "0 * * * *"
+      }
+    }
+  },
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch"

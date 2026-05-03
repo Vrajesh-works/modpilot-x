@@ -6,6 +6,7 @@ import type {
   OnPostSubmitRequest,
   TriggerResponse,
 } from '@devvit/web/shared';
+import { settings } from '@devvit/web/server';
 import { enrichAndStore } from '../core/enrichment.js';
 import {
   getItem,
@@ -13,6 +14,7 @@ import {
   incrementRepeatOffender,
   incrementUserAction,
   recordPatternWave,
+  setBaselineActive,
 } from '../core/redis.js';
 
 export const triggers = new Hono();
@@ -20,6 +22,17 @@ export const triggers = new Hono();
 triggers.post('/on-app-install', async (c) => {
   const input = await c.req.json<OnAppInstallRequest>();
   console.log('App installed to subreddit: r/' + input.subreddit?.name);
+
+  try {
+    const baselineDays = (await settings.get<number>('baselineDays')) ?? 0;
+    if (baselineDays > 0) {
+      await setBaselineActive(baselineDays);
+      console.log(`[ModPilot] Baseline mode active for ${baselineDays} day(s)`);
+    }
+  } catch (err) {
+    console.error('[ModPilot] App install setup failed:', err);
+  }
+
   return c.json<TriggerResponse>({ status: 'success' }, 200);
 });
 

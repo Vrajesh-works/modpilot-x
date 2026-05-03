@@ -147,3 +147,44 @@ forms.post('/xray-comment-submit', async (c) => {
   const values = await c.req.json<XRayFormValues>();
   return c.json<UiResponse>(await handleXRaySubmit(values), 200);
 });
+
+// ─── Team Queue Submit ────────────────────────────────────────────────────────
+
+forms.post('/team-queue-submit', async (c) => {
+  const values = await c.req.json<Record<string, string | string[]>>();
+  const { settings } = await import('@devvit/web/server');
+  const threshold = (await settings.get<number>('teamReviewThreshold')) ?? 2;
+  const { getVotes, setVotes } = await import('../core/redis.js');
+
+  const voteKeys = Object.keys(values).filter((k) => k.startsWith('vote_'));
+  const results: string[] = [];
+
+  for (const key of voteKeys) {
+    const itemId = key.replace(/^vote_/, '');
+    const rawVote = Array.isArray(values[key]) ? values[key][0] : values[key];
+    if (!rawVote || rawVote === 'none') continue;
+
+    const existing = (await getVotes(itemId)) ?? {
+      itemId,
+      votes: {},
+      updatedAt: Date.now(),
+    };
+    const vote = rawVote as 'approve' | 'remove' | 'discuss';
+    existing.votes[context.username ?? 'unknown'] = vote;
+    existing.updatedAt = Date.now();
+    await setVotes(existing);
+
+    // Count votes for this action
+    const actionVotes = Object.values(existing.votes).filter((v) => v === vote).length;
+    if ((vote === 'approve' || vote === 'remove') && actionVotes >= threshold) {
+      const { handleQuickAction } = await import('../core/quickActions.js');
+      await handleQuickAction(vote, itemId, context.username ?? 'unknown');
+      results.push(`${itemId}: auto-${vote}d (${actionVotes}/${threshold} votes)`);
+    } else {
+      results.push(`${itemId}: vote recorded (${vote})`);
+    }
+  }
+
+  const msg = results.length > 0 ? results.join(' · ') : 'No votes submitted.';
+  return c.json<UiResponse>({ showToast: msg }, 200);
+});
