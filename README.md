@@ -1,94 +1,123 @@
-# Devvit Mod Tool Template
+# ModPilot-X
 
-A template for building Reddit moderation tools using Devvit web. This template provides a complete foundation for creating custom moderation tools with bulk comment management capabilities.
+A Reddit mod-queue triage and team coordination tool built on Devvit. ModPilot-X helps moderators work faster by surfacing risk signals for every post and comment, coordinating reviews across the mod team, and detecting patterns like spam waves and brigading — all without any external AI or third-party dependencies.
+
+Built for the [Reddit Mod Tools & Migrated Apps Hackathon](https://developers.reddit.com).
 
 ## Features
 
-This template includes a working mod tool called **"Mop"** that demonstrates:
+### X-Ray Risk Analysis
+- Every post and comment is automatically scored 1–10 on submission
+- Score is based on author trust tier, account age, prior removals, text hedging density, sentence uniformity, vocabulary diversity (TTR), Flesch-Kincaid grade, and structural patterns
+- Moderators can open **"View ModPilot X-Ray"** from any post or comment to see the full breakdown and take action directly from the panel
 
-- **Bulk Comment Management**: Remove or lock multiple comments at once
-- **Thread-level Actions**: "Mop comments" - Remove/lock a comment and all its replies
-- **Post-level Actions**: "Mop post comments" - Remove/lock all comments on a post
-- **Flexible Options**:
-  - Remove comments, lock comments, or both
-  - Skip distinguished comments (moderator/admin posts)
-- **Permission Checks**: Only moderators with proper permissions can use the tool
-- **User-friendly Forms**: Interactive forms with clear options and validation
+### Quick Actions
+From the X-Ray panel, mods can approve, remove, snooze (24h), or flag an item for team review — all in one click.
+
+### Claim System
+- Mods can claim an item to signal "I'm reviewing this"
+- Claims auto-expire (configurable, default 30 min)
+- Other mods see who has the item claimed, preventing duplicate work
+
+### Team Review Queue
+- Flag high-ambiguity items for collective review
+- Open **"Team Review Queue"** from the subreddit menu to vote approve/remove/discuss on up to 5 items at once
+- Auto-executes the winning action when the vote threshold is reached
+
+### Daily Digest
+- Aggregates daily stats: items enriched, removals, approvals, top patterns, mod agreement rate
+- Delivered as a Discord embed if a webhook URL is configured
+- Trigger on-demand via **"Send ModPilot Digest Now"** from the subreddit menu
+
+### Pattern Detection
+Runs hourly to detect:
+- **Spam waves** — users posting more than 5 times in a single hour
+- **Brigading** — high-risk queue doubling in size within an hour
+- **Repeat offenders** — users accumulating removals above threshold
+
+### Community Baseline Mode
+Set a number of observation days on install. During baseline, ModPilot scores items silently without adding them to the high-risk queue — letting the scoring model warm up before it starts acting.
+
+### Feedback Loop
+Every mod action (approve/remove) is compared against the predicted risk tier to compute a running agreement rate, surfaced in the daily digest.
 
 ## Tech Stack
 
-- [Devvit](https://developers.reddit.com/): Reddit's platform for building and deploying apps
-- [Vite](https://vite.dev/): Fast build tool for the web components
-- [Hono](https://hono.dev/): Lightweight web framework for backend logic
-- [TypeScript](https://www.typescriptlang.org/): Type-safe development
-
-## Getting Started
-
-1. **Clone this template** or use it as a starting point for your mod tool
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
-3. **Configure your app** in `devvit.json`:
-   - Update the app name
-   - Set your development subreddit
-4. **Start developing**:
-   ```bash
-   npm run dev
-   ```
-5. **Test your changes** in your development subreddit
+- [Devvit](https://developers.reddit.com/) `@devvit/web` v0.12.22 — Reddit's app platform
+- [Hono](https://hono.dev/) — lightweight HTTP routing
+- [Vite](https://vite.dev/) — build tooling
+- [TypeScript](https://www.typescriptlang.org/) — fully typed throughout
+- [Vitest](https://vitest.dev/) — unit tests for pure-function core logic
 
 ## Project Structure
 
 ```
 src/
-├── index.ts          # Main server setup with Hono routes
+├── index.ts                  Main server — mounts all Hono route groups
 ├── core/
-│   └── nuke.ts       # Core moderation logic for bulk operations
+│   ├── redis.ts              All domain types + typed Redis helpers
+│   ├── authorProfiler.ts     Trust tier from Reddit account signals
+│   ├── textAnalyzer.ts       5 heuristic text signals (pure TS, no I/O)
+│   ├── riskScorer.ts         Weighted 1–10 score + rationale string
+│   ├── enrichment.ts         Orchestrates profiler → analyzer → scorer → Redis
+│   ├── xrayDisplay.ts        Builds X-Ray FormField[] from EnrichedItem
+│   ├── quickActions.ts       approve / remove / snooze / flag-for-team
+│   ├── claimSystem.ts        Claim / release with Redis TTL
+│   ├── patternDetector.ts    Spam wave, brigading, repeat offender detection
+│   ├── digestBuilder.ts      Daily stats aggregation + Discord webhook POST
+│   ├── feedbackLoop.ts       Mod agreement tracking
+│   ├── textAnalyzer.test.ts  Unit tests — textAnalyzer
+│   └── riskScorer.test.ts    Unit tests — riskScorer
 └── routes/
-    ├── api.ts        # Public API endpoints
-    ├── forms.ts      # Form submission handlers
-    ├── menu.ts       # Context menu item handlers
-    └── triggers.ts   # App lifecycle triggers
+    ├── api.ts                Public API endpoints
+    ├── forms.ts              Form submission handlers (X-Ray, Team Queue)
+    ├── menu.ts               Context menu handlers
+    ├── triggers.ts           PostSubmit / PostReport / ModAction / AppInstall
+    └── scheduler.ts          Daily digest + hourly pattern detection
 ```
 
-## Customizing Your Mod Tool
+## Subreddit Settings
 
-This template is designed to be easily customizable:
+Configure ModPilot-X from your subreddit's app settings:
 
-1. **Modify existing actions**: Edit the nuke functionality in `src/core/nuke.ts`
-2. **Add new menu items**: Update `devvit.json` and add handlers in `src/routes/menu.ts`
-3. **Create new forms**: Add form definitions and handlers in `src/routes/forms.ts`
-4. **Add API endpoints**: Extend `src/routes/api.ts` for external integrations
+| Setting | Default | Description |
+|---|---|---|
+| Risk score threshold | 7 | Items at or above this score enter the high-risk queue |
+| Auto-snooze below | 0 (off) | Items at or below this score are auto-snoozed |
+| Claim expiry (minutes) | 30 | How long a mod's claim is held before expiring |
+| Team review votes required | 2 | Votes needed to trigger auto-action on a queued item |
+| Discord webhook URL | — | If set, the daily digest is posted here |
+| Baseline observation days | 0 (off) | Days to observe silently before scoring becomes active |
 
 ## Commands
 
-- `npm run dev`: Starts development mode with live reload on your test subreddit
-- `npm run build`: Builds your mod tool for production
-- `npm run deploy`: Uploads a new version of your app to Reddit
-- `npm run launch`: Publishes your app for review and public use
-- `npm run login`: Authenticates your CLI with Reddit
-- `npm run type-check`: Runs TypeScript type checking, linting, and formatting
+```bash
+npm run dev          # Start devvit playtest (live reload in dev subreddit)
+npm run build        # Production build
+npm run type-check   # TypeScript type checking
+npm run lint         # ESLint
+npm run test         # Vitest unit tests
+npm run deploy       # type-check + lint + test + devvit upload
+npm run launch       # deploy + devvit publish (submits for app review)
+```
 
-## How It Works
+## Menu Items
 
-The template demonstrates Reddit mod tool development through the "Mop" feature:
+All menu items are moderator-only.
 
-1. **Context Menu Integration**: Click on the Mod Shield icon in a comment to see custom mod actions
-2. **Permission Validation**: Automatically checks if the user has moderation permissions
-3. **Interactive Forms**: Presents options through Reddit's native form system
-4. **Reddit API**: Processes multiple comments using Reddit's API
-
-## Development Notes
-
-- **Permissions**: The app requires `reddit: true` permission to access Reddit's API
-- **User Types**: Menu items are restricted to `moderator` user type
+| Location | Label | Action |
+|---|---|---|
+| Post / Comment | View ModPilot X-Ray | Opens risk score panel with quick actions |
+| Post / Comment | Claim for review | Marks item as being reviewed by you |
+| Post / Comment | Mop comments | Bulk-remove a comment thread |
+| Post | Mop post comments | Bulk-remove all comments on a post |
+| Subreddit | Team Review Queue | Opens voting panel for flagged items |
+| Subreddit | Send ModPilot Digest Now | Triggers the daily digest immediately |
+| Subreddit | Exit ModPilot Baseline Mode | Ends observation mode, activates scoring |
 
 ## Deployment
 
-1. Test thoroughly in your development subreddit
-2. Run `npm run deploy` to upload your app
-3. Use `npm run launch` to submit for Reddit's app review process
-4. Once approved, users can install your mod tool from Reddit's app directory
-
-This template provides everything you need to build powerful, user-friendly moderation tools for Reddit communities.
+```bash
+npm run deploy    # Upload to Reddit (runs checks first)
+npm run launch    # Submit for public app review
+```
