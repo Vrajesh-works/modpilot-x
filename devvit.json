@@ -20,12 +20,64 @@
         "location": "post",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/mop-post"
+      },
+      {
+        "label": "View ModPilot X-Ray",
+        "description": "See risk score, author profile, and text signals for this post.",
+        "location": "post",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/xray-post"
+      },
+      {
+        "label": "View ModPilot X-Ray",
+        "description": "See risk score, author profile, and text signals for this comment.",
+        "location": "comment",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/xray-comment"
+      },
+      {
+        "label": "Claim for review",
+        "description": "Mark this item as being reviewed by you.",
+        "location": "post",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/claim-item"
+      },
+      {
+        "label": "Claim for review",
+        "description": "Mark this item as being reviewed by you.",
+        "location": "comment",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/claim-item"
+      },
+      {
+        "label": "Team Review Queue",
+        "description": "See all items flagged for team review.",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/team-queue"
+      },
+      {
+        "label": "Send ModPilot Digest Now",
+        "description": "Immediately send the daily digest.",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/send-digest"
+      },
+      {
+        "label": "Exit ModPilot Baseline Mode",
+        "description": "Stop observation mode and start scoring immediately.",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/exit-baseline"
       }
     ]
   },
   "forms": {
     "mopComment": "/internal/form/mop-comment-submit",
-    "mopPost": "/internal/form/mop-post-submit"
+    "mopPost": "/internal/form/mop-post-submit",
+    "xrayPost": "/internal/form/xray-post-submit",
+    "xrayComment": "/internal/form/xray-comment-submit",
+    "teamQueue": "/internal/form/team-queue-submit"
   },
   "triggers": {
     "onAppInstall": "/internal/triggers/on-app-install",

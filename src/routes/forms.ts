@@ -3,6 +3,7 @@ import type { UiResponse } from '@devvit/web/shared';
 import { context } from '@devvit/web/server';
 import { isT1, isT3 } from '@devvit/shared-types/tid.js';
 import { handleNuke, handleNukePost } from '../core/nuke';
+import { handleQuickAction, type QuickActionType } from '../core/quickActions.js';
 
 type NukeFormValues = {
   remove?: boolean;
@@ -111,4 +112,38 @@ forms.post('/mop-post-submit', async (c) => {
     },
     200
   );
+});
+
+// ─── X-Ray Quick Action ───────────────────────────────────────────────────────
+
+type XRayFormValues = {
+  targetId?: string;
+  action?: string | string[];
+  note?: string;
+};
+
+async function handleXRaySubmit(values: XRayFormValues): Promise<UiResponse> {
+  const targetId = values.targetId ?? context.postId;
+  if (!targetId) {
+    return { showToast: 'No target ID found.' };
+  }
+
+  const rawAction = Array.isArray(values.action) ? values.action[0] : values.action;
+  if (!rawAction || rawAction === 'none') {
+    return { showToast: 'No action selected.' };
+  }
+
+  const mod = context.username ?? 'unknown';
+  const result = await handleQuickAction(rawAction as QuickActionType, targetId, mod, values.note);
+  return { showToast: result.message };
+}
+
+forms.post('/xray-post-submit', async (c) => {
+  const values = await c.req.json<XRayFormValues>();
+  return c.json<UiResponse>(await handleXRaySubmit(values), 200);
+});
+
+forms.post('/xray-comment-submit', async (c) => {
+  const values = await c.req.json<XRayFormValues>();
+  return c.json<UiResponse>(await handleXRaySubmit(values), 200);
 });
