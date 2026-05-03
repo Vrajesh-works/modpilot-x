@@ -35,6 +35,11 @@
     "dev": "vite build --watch"
   },
   "permissions": {
-    "reddit": true
+    "reddit": true,
+    "redis": true,
+    "http": {
+      "enable": true,
+      "domains": ["discord.com"]
+    }
   }
 }
