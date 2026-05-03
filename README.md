@@ -2,8 +2,6 @@
 
 A Reddit mod-queue triage and team coordination tool built on Devvit. ModPilot-X helps moderators work faster by surfacing risk signals for every post and comment, coordinating reviews across the mod team, and detecting patterns like spam waves and brigading — all without any external AI or third-party dependencies.
 
-Built for the [Reddit Mod Tools & Migrated Apps Hackathon](https://developers.reddit.com).
-
 ## Features
 
 ### X-Ray Risk Analysis
