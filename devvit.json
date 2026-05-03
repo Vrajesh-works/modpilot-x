@@ -28,7 +28,10 @@
     "mopPost": "/internal/form/mop-post-submit"
   },
   "triggers": {
-    "onAppInstall": "/internal/triggers/on-app-install"
+    "onAppInstall": "/internal/triggers/on-app-install",
+    "onPostSubmit": "/internal/triggers/on-post-submit",
+    "onPostReport": "/internal/triggers/on-post-report",
+    "onModAction": "/internal/triggers/on-mod-action"
   },
   "scripts": {
     "build": "vite build",
