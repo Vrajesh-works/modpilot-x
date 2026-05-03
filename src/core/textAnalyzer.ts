@@ -12,11 +12,11 @@ const HEDGE_WORDS = [
 const STRUCTURAL_PATTERNS: Array<{ name: string; test: (t: string) => boolean }> = [
   {
     name: 'bulleted_list',
-    test: (t) => (t.match(/^[\s]*[-*•]\s+/m) ?? []).length >= 3,
+    test: (t) => (t.match(/^[\s]*[-*•]\s+/gm) ?? []).length >= 3,
   },
   {
     name: 'numbered_list',
-    test: (t) => (t.match(/^[\s]*\d+[.)]\s+/m) ?? []).length >= 3,
+    test: (t) => (t.match(/^[\s]*\d+[.)]\s+/gm) ?? []).length >= 3,
   },
   {
     name: 'all_caps_heavy',
